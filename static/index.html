@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/xterm.css" />
+    <style>
+      body {
+        margin: 0px;
+        height: 100vh;
+        background-color: black;
+        overflow: hidden;
+      }
+      #terminal {
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">hello</div>
+  </body>
+  <script src="/xterm.js"></script>
+  <script src="/xterm-addon-fit.js"></script>
+  <script src="/socket.io.slim.js"></script>
+  <script>
+    let socket = io();
+    let term = null;
+    socket.on('connect', () => {
+      document.getElementById('container').innerHTML = '<div id="terminal"></div>';
+
+      term = new Terminal();
+      term.open(document.getElementById('terminal'));
+
+      term.onResize((e) => {
+        socket.emit('resize', e.cols, e.rows);
+      });
+
+      let fit = new FitAddon.FitAddon();
+      fit.activate(term);
+      fit.fit();
+      window.onresize = function(event) {
+        fit.fit();
+      };
+
+      term.onKey((event) => {
+        socket.emit('write', event.key);
+      });
+    });
+    socket.on('disconnect', () => {
+      document.getElementById('container').innerHTML = '';
+      term = null;
+    });
+    socket.on('data', (data) => {
+      if (term) {
+        term.write(data);
+      }
+    });
+  </script>
+</html>
